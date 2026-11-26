@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><title>Refuerzo de personal con pronóstico</title>
+<style>
+  :root{--tinta:#1f1f1f;--tinta2:#55534e;--indigo:#544ddb;--teal:#1fa396;--ambar:#e9820c;--gris:#8c8c8c;--fondo:#ffffff;--suave:#f4f3fd;--linea:#e6e5e1}
+  @page{size:1280px 720px;margin:0}
+  *{box-sizing:border-box}
+  body{margin:0;background:#ddd;font-family:"Helvetica Neue",Helvetica,Arial,sans-serif;color:var(--tinta)}
+  .s{width:1280px;height:720px;background:var(--fondo);position:relative;overflow:hidden;page-break-after:always;padding:64px 80px;margin:0 auto 20px}
+  @media print{body{background:#fff}.s{margin:0}}
+  .k{font-size:15px;letter-spacing:.14em;text-transform:uppercase;color:var(--indigo);font-weight:700;margin-bottom:14px}
+  h1{font-size:46px;line-height:1.1;margin:0 0 22px;font-weight:800;letter-spacing:-.01em}
+  h2{font-size:38px;line-height:1.15;margin:0 0 26px;font-weight:800;letter-spacing:-.01em}
+  p,li{font-size:22px;line-height:1.45;color:var(--tinta2);margin:0 0 12px}
+  b{color:var(--tinta)}
+  .n{position:absolute;bottom:28px;right:80px;font-size:14px;color:var(--gris)}
+  .pie{position:absolute;bottom:28px;left:80px;font-size:13px;color:var(--gris)}
+  .dos{display:grid;grid-template-columns:1fr 1fr;gap:48px;align-items:center}
+  .cifra{font-size:84px;font-weight:800;color:var(--indigo);line-height:1}
+  .cifra.t{color:var(--teal)} .cifra.a{color:var(--ambar)}
+  .et{font-size:19px;color:var(--tinta2);margin-top:8px;line-height:1.35}
+  .tarjetas{display:grid;grid-template-columns:repeat(3,1fr);gap:28px;margin-top:10px}
+  .tarjeta{background:var(--suave);border-radius:14px;padding:26px 26px}
+  .tarjeta h3{margin:0 0 10px;font-size:22px}
+  .tarjeta p{font-size:18px;margin:0}
+  img{max-width:100%}
+  .flujo{display:flex;align-items:stretch;gap:14px;margin-top:40px}
+  .caja{flex:1;border:2px solid var(--linea);border-radius:14px;padding:20px 18px;background:#fff}
+  .caja h3{margin:0 0 8px;font-size:21px}.caja p{font-size:16px;margin:0;line-height:1.35}
+  .caja.i{border-color:var(--indigo)}.caja.a{border-color:var(--ambar)}.caja.t{border-color:var(--teal)}
+  .fl{align-self:center;font-size:30px;color:var(--gris)}
+  table{border-collapse:collapse;width:100%;font-size:19px}
+  td,th{padding:12px 14px;border-bottom:1px solid var(--linea);text-align:left;vertical-align:top;color:var(--tinta2)}
+  th{color:var(--tinta);font-size:16px;text-transform:uppercase;letter-spacing:.06em}
+  td b{color:var(--tinta)}
+  .portada{background:var(--indigo);color:#fff}
+  .portada h1{font-size:60px;color:#fff;max-width:980px}
+  .portada p{color:#e4e2fb;font-size:24px}
+  .portada .n,.portada .pie{color:#c9c6f6}
+  .reco{display:inline-block;background:var(--indigo);color:#fff;font-weight:800;font-size:26px;border-radius:10px;padding:10px 22px;margin-bottom:22px}
+  .ley{font-size:16px;color:var(--tinta2);margin-top:6px}
+  .ley span{display:inline-block;width:14px;height:14px;border-radius:3px;vertical-align:-2px;margin-right:6px}
+</style></head><body>
+
+<!-- 1 -->
+<section class="s portada">
+  <div class="k" style="color:#c9c6f6">Proyecto final · Ciencia de Datos</div>
+  <h1>Un refuerzo en las horas en que una sola persona atiende la fila</h1>
+  <p>Pronóstico semanal de ventas por hora para decidir cuándo programar al vendedor de medio tiempo en la matriz. Resultado de 31 días de operación simulada con datos reales.</p>
+  <p style="margin-top:60px;font-size:20px">Luis Gerardo Torres Chicaiza · Universidad San Francisco de Quito · 26 de noviembre de 2026</p>
+  <div class="n">1</div>
+</section>
+
+<!-- 2 -->
+<section class="s">
+  <div class="k">El problema</div>
+  <h2>1 de cada 6 horas, quien atiende tiene más clientes de los que alcanza</h2>
+  <div class="dos">
+    <div>
+      <p>La matriz abre de 8:00 a 19:00 con dos vendedores de sueldo fijo. A las 18:00, en los almuerzos y los domingos y lunes queda <b>una sola persona</b> en piso, justo cuando la venta no baja.</p>
+      <p>En esas horas la vendedora atiende sola, los clientes esperan y algunos se van sin comprar.</p>
+      <p><b>Para quién:</b> la administradora, que arma el horario cada domingo, y las vendedoras que cubren esas horas.</p>
+    </div>
+    <div>
+      <div class="cifra">15,6&nbsp;%</div><div class="et">de las horas abiertas superan 8 ventas por vendedor (133 de 855 horas, agosto a noviembre)</div>
+      <div class="cifra a" style="margin-top:30px">97&nbsp;%</div><div class="et">de esas horas (129 de 133) tienen una sola persona: el problema es de cobertura, no de demanda</div>
+    </div>
+  </div>
+  <div class="n">2</div>
+</section>
+
+<!-- 3 -->
+<section class="s">
+  <div class="k">Qué cambió en la decisión</div>
+  <h2>De la misma dotación todas las semanas a un plan de refuerzo por hora</h2>
+  <div class="dos" style="grid-template-columns:.9fr 1.1fr">
+    <div>
+      <p><b>Antes:</b> nadie decide dónde reforzar; a lo sumo se repite lo de las últimas semanas.</p>
+      <p><b>Ahora:</b> cada domingo el sistema pronostica las ventas de cada hora de la semana siguiente y propone en qué horas poner al medio tiempo. La administradora revisa, ajusta y publica el horario.</p>
+      <p>Ejemplo real: semana del 16 al 22 de noviembre. El plan cubrió <b>11 de las 14 horas saturadas</b>.</p>
+    </div>
+    <div>
+      <img src="semana.png" alt="Horario propuesto de la semana del 16 al 22 de noviembre">
+      <div class="ley"><span style="background:#544ddb"></span>hora con refuerzo propuesto &nbsp; <span style="background:#e9e8f9"></span>sin refuerzo &nbsp; <b style="color:#e9820c">●</b> hora que sí se saturó</div>
+    </div>
+  </div>
+  <div class="n">3</div>
+</section>
+
+<!-- 4 -->
+<section class="s">
+  <div class="k">Cómo funciona</div>
+  <h2>Un circuito que se revisa a sí mismo, con una persona en cada decisión importante</h2>
+  <div class="flujo">
+    <div class="caja t"><h3>1. Datos</h3><p>Cada noche se copian las ventas del ERP, sin datos personales de clientes, y se limpian.</p></div><div class="fl">→</div>
+    <div class="caja i"><h3>2. Pronóstico</h3><p>El domingo, ventas esperadas por hora de la semana siguiente.</p></div><div class="fl">→</div>
+    <div class="caja i"><h3>3. Propuesta</h3><p>Horas a reforzar. La administradora la ajusta y publica el horario.</p></div><div class="fl">→</div>
+    <div class="caja t"><h3>4. Vigilancia</h3><p>Al cerrar cada día se compara lo previsto con lo vendido y se emiten alertas.</p></div><div class="fl">→</div>
+    <div class="caja a"><h3>5. Actualización</h3><p>Si el pronóstico empeora, se entrena una versión nueva; una persona la aprueba o la rechaza.</p></div>
+  </div>
+  <p style="margin-top:36px">Si algo falla, un <b>botón de respaldo</b> vuelve a la regla actual en segundos, sin detener el servicio. El detalle técnico está en el anexo.</p>
+  <div class="n">4</div>
+</section>
+
+<!-- 5 -->
+<section class="s">
+  <div class="k">Cuánto valor generó</div>
+  <h2>$139 menos de costo en un mes que no reforzar, y $22 menos que la regla actual</h2>
+  <div class="dos" style="grid-template-columns:1.15fr .85fr">
+    <img src="costos.png" alt="Costo de 31 días por estrategia">
+    <div>
+      <p>Simulación sobre los 31 días posteriores al entrenamiento (26-10 a 25-11), con las ventas reales de la tienda.</p>
+      <p><b>Costo</b> = ventas perdidas en horas saturadas sin refuerzo ($7,19 de margen cada una) + horas de refuerzo que no hacían falta ($2,65 la hora).</p>
+      <p>Frente a la regla, la ventaja es de <b>6&nbsp;%</b> y llegó después de actualizar el modelo (siguiente diapositiva).</p>
+    </div>
+  </div>
+  <div class="pie">Estas cifras reemplazan a las del pitch inicial, que eran una estimación retrospectiva.</div>
+  <div class="n">5</div>
+</section>
+
+<!-- 6 -->
+<section class="s">
+  <div class="k">La actualización</div>
+  <h2>Al actualizarlo con tres semanas recientes, el plan pasó a cubrir 3 de cada 4 horas saturadas</h2>
+  <div class="dos" style="grid-template-columns:1.05fr .95fr">
+    <img src="deteccion.png" alt="Horas saturadas atendidas tras la actualización">
+    <div>
+      <p>Las primeras tres semanas, el pronóstico <b>no le ganó a la regla</b>: subestimaba la venta, que venía creciendo, y reforzaba poco donde hacía falta.</p>
+      <p>El 15-11 el sistema lo detectó y propuso una versión nueva. Se aprobó, y desde entonces atendió <b>15 de 20 horas saturadas</b> (la regla, 6), a cambio de 10 horas de refuerzo de más.</p>
+      <p>Resultado de esos 10 días: <b>$38 menos que la regla</b>.</p>
+    </div>
+  </div>
+  <div class="n">6</div>
+</section>
+
+<!-- 7 -->
+<section class="s">
+  <div class="k">Riesgos y cómo se vigilan</div>
+  <h2>Probamos a propósito tres fallas; el sistema avisó en las tres</h2>
+  <table>
+    <tr><th style="width:28%">Riesgo</th><th style="width:38%">Qué pasó en la prueba</th><th>Cómo se vigila y quién actúa</th></tr>
+    <tr><td><b>Un evento de demanda</b> que el sistema no conoce (promoción, feria)</td><td>Simulamos dos días con el doble de ventas: la alerta saltó y se propuso una versión nueva</td><td>Alerta si el error sube dos días seguidos → la administradora aprueba o rechaza la actualización</td></tr>
+    <tr><td><b>Un error en los datos</b> (se mezclan datos de otra sucursal)</td><td>Detectado el mismo día; no se tocó el modelo y ese día se excluyó del aprendizaje</td><td>Alerta al equipo de datos → se corrige la fuente</td></tr>
+    <tr><td><b>Que el plan cueste más que la regla</b></td><td>Pasó en las tres primeras semanas; la actualización lo revirtió</td><td>Revisión del costo cada 2 semanas → si se repite, botón de respaldo</td></tr>
+  </table>
+  <p style="margin-top:18px">También hubo 8 avisos menores sin consecuencia (falsas alarmas). Por eso ninguna acción depende de un solo aviso.</p>
+  <div class="n">7</div>
+</section>
+
+<!-- 8 -->
+<section class="s">
+  <div class="k">Quién paga los errores</div>
+  <h2>El fin de semana el plan detecta la mitad de las horas saturadas que entre semana</h2>
+  <div class="dos">
+    <div>
+      <div class="cifra">64&nbsp;%</div><div class="et">de las horas saturadas cubiertas de lunes a viernes</div>
+      <div class="cifra a" style="margin-top:26px">35&nbsp;%</div><div class="et">el sábado y el domingo, cuando una sola persona atiende</div>
+    </div>
+    <div>
+      <p><b>Una hora saturada sin refuerzo</b> la paga la vendedora que atiende sola (esfuerzo, clientes molestos) y el negocio (ventas perdidas).</p>
+      <p><b>Un refuerzo innecesario</b> lo paga el negocio: $2,65 por hora.</p>
+      <p>Por eso el siguiente ajuste es un criterio propio para el fin de semana, y la brecha queda como alarma: si no se cierra en dos semanas, el plan deja de usarse los fines de semana.</p>
+    </div>
+  </div>
+  <div class="n">8</div>
+</section>
+
+<!-- 9 -->
+<section class="s">
+  <div class="k">Salvaguardas</div>
+  <h2>El sistema propone; las personas deciden</h2>
+  <div class="tarjetas">
+    <div class="tarjeta"><h3>Aprobación humana</h3><p>Ninguna versión nueva entra en uso sola: el sistema muestra cuánto costaría cada versión y la administradora decide. El cambio se puede deshacer en 30 segundos.</p></div>
+    <div class="tarjeta"><h3>Botón de respaldo</h3><p>Con un clic, la propuesta vuelve a la regla actual. Se activa solo si el sistema falla.</p></div>
+    <div class="tarjeta"><h3>Tope de 20 horas</h3><p>Una semana el plan pidió 22 horas. La administradora recorta las de menor carga para respetar el contrato de medio tiempo.</p></div>
+  </div>
+  <p style="margin-top:34px">Todo queda registrado: cada propuesta dice qué versión la produjo y con qué datos, para poder explicar cualquier decisión después.</p>
+  <div class="n">9</div>
+</section>
+
+<!-- 10 -->
+<section class="s">
+  <div class="k">Recomendación</div>
+  <div class="reco">Ajustar y pasar a un piloto de 8 semanas</div>
+  <div class="dos" style="align-items:start">
+    <div>
+      <p><b>Por qué no escalar todavía:</b> la ventaja sobre la regla es pequeña (6&nbsp;%), se midió en un mes y supone que cada hora saturada pierde una venta. Solo un piloto con una persona real puede medir esa pérdida.</p>
+      <p><b>Por qué no retirar:</b> frente a no hacer nada evita el 28&nbsp;% del costo, y tras la actualización cubre el triple de horas saturadas que la regla.</p>
+    </div>
+    <div>
+      <table>
+        <tr><th>Qué se necesita</th><th>Costo</th></tr>
+        <tr><td>Vendedor de medio tiempo, hasta 20 h por semana</td><td>~$53 por semana</td></tr>
+        <tr><td>Ajuste del criterio de fin de semana</td><td>1 semana de trabajo</td></tr>
+        <tr><td>Servidor en la nube para operar sin el portátil</td><td>~$20 al mes</td></tr>
+        <tr><td>Revisión del plan cada domingo</td><td>20 min de la administradora</td></tr>
+        <tr><td>Diseño del piloto: días alternos con y sin refuerzo, comparado con la sucursal 2</td><td>Incluido</td></tr>
+      </table>
+    </div>
+  </div>
+  <div class="n">10</div>
+</section>
+
+<!-- 11 -->
+<section class="s">
+  <div class="k">Anexo técnico</div>
+  <h2>Las métricas técnicas y lo que significan para el negocio</h2>
+  <table>
+    <tr><th style="width:34%">Métrica</th><th style="width:22%">Valor</th><th>Consecuencia de negocio</th></tr>
+    <tr><td>Error del pronóstico (WAPE)</td><td>0,37 (regla 0,38)</td><td>En una hora típica de 6 ventas se falla por ~2; alcanza para ubicar los picos, no para prometer cantidades exactas</td></tr>
+    <tr><td>Horas saturadas detectadas (tras la actualización)</td><td>15 de 20 (regla 6)</td><td>9 horas más con apoyo en 10 días</td></tr>
+    <tr><td>Refuerzos innecesarios (tras la actualización)</td><td>16 (regla 6)</td><td>~$26 en horas de más, compensadas por las ventas que se dejan de perder</td></tr>
+    <tr><td>Deriva de datos (PSI) y alertas</td><td>3 de 3 fallas detectadas; 8 avisos menores</td><td>Un dato mal cargado no llega a cambiar el modelo</td></tr>
+    <tr><td>Tiempo de respuesta del servicio</td><td>25 ms (p95), 0 errores</td><td>El plan semanal se genera en segundos</td></tr>
+    <tr><td>Versiones del modelo</td><td>v1 → v3 (aprobada el 15-11)</td><td>Se puede volver a la versión anterior en 30 s</td></tr>
+  </table>
+  <div class="pie">Arquitectura completa, código y evidencia: github.com/xGerart/proyecto_final · documento técnico PSet4_memo_Torres_Chicaiza.pdf</div>
+  <div class="n">11</div>
+</section>
+
+<!-- 12 -->
+<section class="s">
+  <div class="k">Anexo técnico</div>
+  <h2>Arquitectura</h2>
+  <img src="../arquitectura.png" alt="Arquitectura del proyecto" style="width:100%;margin-top:4px">
+  <div class="n">12</div>
+</section>
+</body></html>
