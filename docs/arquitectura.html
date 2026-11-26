@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><title>Arquitectura del proyecto</title>
+<style>
+  body{margin:0;background:#fff;font-family:"Helvetica Neue",Arial,sans-serif}
+  svg text{font-family:"Helvetica Neue",Arial,sans-serif}
+  .t{font-size:13px;font-weight:700;fill:#1f1f1f}
+  .s{font-size:10.5px;fill:#55534e}
+  .zona{font-size:11px;font-weight:700;fill:#8c8c8c;letter-spacing:.08em}
+  .f{font-size:10px;fill:#55534e}
+</style></head><body>
+<svg id="diagrama" xmlns="http://www.w3.org/2000/svg" width="1200" height="560" viewBox="0 0 1200 560">
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#55534e"/></marker>
+    <marker id="ai" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#544ddb"/></marker>
+    <marker id="aa" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#e9820c"/></marker>
+  </defs>
+
+  <!-- zonas -->
+  <rect x="10" y="10" width="1180" height="170" rx="10" fill="#f6f6f4"/>
+  <text class="zona" x="24" y="32">1 · DATOS (PSet 2) — Kestra diario 20:30</text>
+  <rect x="10" y="195" width="560" height="150" rx="10" fill="#f6f6f4"/>
+  <text class="zona" x="24" y="217">2 · EXPERIMENTACIÓN (PSet 3)</text>
+  <rect x="585" y="195" width="605" height="355" rx="10" fill="#f1f0fc"/>
+  <text class="zona" x="599" y="217">3 · OPERACIÓN (PSet 4) — docker-compose</text>
+  <rect x="10" y="360" width="560" height="190" rx="10" fill="#f6f6f4"/>
+  <text class="zona" x="24" y="382">4 · CÓDIGO — GitHub</text>
+
+  <!-- fila 1: datos -->
+  <g>
+    <rect x="25" y="50" width="145" height="110" rx="8" fill="#fff" stroke="#c9c7c0"/>
+    <text class="t" x="37" y="74">Fuentes</text>
+    <text class="s" x="37" y="94">ERP (SSH, solo lectura,</text>
+    <text class="s" x="37" y="108">anonimizado)</text>
+    <text class="s" x="37" y="126">API de feriados</text>
+    <text class="s" x="37" y="140">(Nager.Date)</text>
+  </g>
+  <g>
+    <rect x="200" y="50" width="160" height="110" rx="8" fill="#fff" stroke="#c9c7c0"/>
+    <text class="t" x="212" y="74">ingesta.yml</text>
+    <text class="s" x="212" y="94">extracción + PUT/COPY</text>
+    <text class="s" x="212" y="108">retries exponenciales</text>
+    <text class="s" x="212" y="122">backfill por fechas</text>
+    <text class="s" x="212" y="140">→ RAW (append-only)</text>
+  </g>
+  <g>
+    <rect x="390" y="50" width="250" height="110" rx="8" fill="#fff" stroke="#1fa396" stroke-width="1.5"/>
+    <text class="t" x="402" y="74">Snowflake · dbt (transformacion.yml)</text>
+    <text class="s" x="402" y="94">BRONZE  tipado 1:1 + seeds</text>
+    <text class="s" x="402" y="108">SILVER  limpieza, reglas, horario</text>
+    <text class="s" x="402" y="122">GOLD  star schema (fct_store_hours,</text>
+    <text class="s" x="402" y="136">fct_sales_lines, dim_*) + tests</text>
+  </g>
+  <g>
+    <rect x="670" y="50" width="200" height="110" rx="8" fill="#fff" stroke="#1fa396" stroke-width="1.5"/>
+    <text class="t" x="682" y="74">Spark → OBT</text>
+    <text class="s" x="682" y="94">OBT_SALES_HOURLY</text>
+    <text class="s" x="682" y="108">grano: sucursal × fecha × hora</text>
+    <text class="s" x="682" y="122">rezagos ≥ 7 días (sin fuga)</text>
+    <text class="s" x="682" y="140">OBT_AUDIT: validación de joins</text>
+  </g>
+  <g>
+    <rect x="900" y="50" width="275" height="110" rx="8" fill="#fff" stroke="#c9c7c0"/>
+    <text class="t" x="912" y="74">Snapshots de la OBT (hash SHA-256)</text>
+    <text class="s" x="912" y="94">entrenamiento: hasta 07-11 (d40705c0…)</text>
+    <text class="s" x="912" y="108">producción: hasta 25-11 (21d16405…)</text>
+    <text class="s" x="912" y="126">el hash queda en cada corrida</text>
+    <text class="s" x="912" y="140">de MLflow (trazabilidad)</text>
+  </g>
+  <line x1="170" y1="105" x2="198" y2="105" stroke="#55534e" stroke-width="1.5" marker-end="url(#a)"/>
+  <line x1="360" y1="105" x2="388" y2="105" stroke="#55534e" stroke-width="1.5" marker-end="url(#a)"/>
+  <line x1="640" y1="105" x2="668" y2="105" stroke="#55534e" stroke-width="1.5" marker-end="url(#a)"/>
+  <line x1="870" y1="105" x2="898" y2="105" stroke="#55534e" stroke-width="1.5" marker-end="url(#a)"/>
+
+  <!-- fila 2: experimentación -->
+  <g>
+    <rect x="25" y="232" width="250" height="98" rx="8" fill="#fff" stroke="#c9c7c0"/>
+    <text class="t" x="37" y="256">notebooks 01-05</text>
+    <text class="s" x="37" y="276">EDA → features → Pipeline (src/)</text>
+    <text class="s" x="37" y="290">2 líneas base, 7 candidatos, Optuna</text>
+    <text class="s" x="37" y="304">CV temporal por semanas</text>
+    <text class="s" x="37" y="318">ganador: Ridge (WAPE CV 0,379)</text>
+  </g>
+  <g>
+    <rect x="305" y="232" width="250" height="98" rx="8" fill="#fff" stroke="#544ddb" stroke-width="1.5"/>
+    <text class="t" x="317" y="256">MLflow (tracking + Registry)</text>
+    <text class="s" x="317" y="276">105 corridas, Postgres + volumen</text>
+    <text class="s" x="317" y="290">ventas-hora-matriz-modelo</text>
+    <text class="s" x="317" y="304">@champion v3 · @anterior v1</text>
+    <text class="s" x="317" y="318">tag umbral_decision por versión</text>
+  </g>
+  <line x1="275" y1="281" x2="303" y2="281" stroke="#55534e" stroke-width="1.5" marker-end="url(#a)"/>
+  <path d="M1037,160 L1037,186 L150,186 L150,230" fill="none" stroke="#55534e" stroke-width="1.5" marker-end="url(#a)"/>
+
+  <!-- fila 3: operación -->
+  <g>
+    <rect x="600" y="232" width="190" height="112" rx="8" fill="#fff" stroke="#544ddb" stroke-width="1.5"/>
+    <text class="t" x="612" y="256">API FastAPI</text>
+    <text class="s" x="612" y="276">GET /salud · GET /modelo</text>
+    <text class="s" x="612" y="290">POST /predecir (Pydantic)</text>
+    <text class="s" x="612" y="304">carga @champion, revisa</text>
+    <text class="s" x="612" y="318">el alias cada 30 s</text>
+    <text class="s" x="612" y="334">respaldo: regla de 4 semanas</text>
+  </g>
+  <g>
+    <rect x="815" y="232" width="175" height="112" rx="8" fill="#fff" stroke="#c9c7c0"/>
+    <text class="t" x="827" y="256">produccion_lotes.yml</text>
+    <text class="s" x="827" y="276">31 lotes diarios</text>
+    <text class="s" x="827" y="290">(26-10 a 25-11), en orden</text>
+    <text class="s" x="827" y="304">lee MLOPS.LOTES</text>
+    <text class="s" x="827" y="318">llama a la API</text>
+    <text class="s" x="827" y="334">une targets al llegar</text>
+  </g>
+  <g>
+    <rect x="1015" y="232" width="160" height="112" rx="8" fill="#fff" stroke="#1fa396" stroke-width="1.5"/>
+    <text class="t" x="1027" y="256">Snowflake · MLOPS</text>
+    <text class="s" x="1027" y="276">PREDICCIONES</text>
+    <text class="s" x="1027" y="290">SOLICITUDES</text>
+    <text class="s" x="1027" y="304">EVALUACION</text>
+    <text class="s" x="1027" y="318">MONITOREO · ALERTAS</text>
+    <text class="s" x="1027" y="334">REENTRENAMIENTOS</text>
+  </g>
+  <g>
+    <rect x="1015" y="370" width="160" height="80" rx="8" fill="#fff" stroke="#c9c7c0"/>
+    <text class="t" x="1027" y="394">monitoreo.yml</text>
+    <text class="s" x="1027" y="414">sistema · modelo · datos</text>
+    <text class="s" x="1027" y="428">PSI + KS/chi² · WAPE</text>
+    <text class="s" x="1027" y="442">costo vs. regla → alertas</text>
+  </g>
+  <g>
+    <rect x="600" y="370" width="390" height="80" rx="8" fill="#fff" stroke="#e9820c" stroke-width="1.5"/>
+    <text class="t" x="612" y="394">reentrenamiento.yml</text>
+    <text class="s" x="612" y="414">disparo: WAPE en 2 lotes seguidos o calendario (28 lotes) → reentrena con</text>
+    <text class="s" x="612" y="428">los hiperparámetros del champion → @challenger → compara en el último lote</text>
+    <text class="s" x="612" y="442">→ regla de promoción → PAUSA: una persona aprueba o rechaza</text>
+  </g>
+  <g>
+    <rect x="1015" y="470" width="160" height="66" rx="8" fill="#fff" stroke="#c9c7c0"/>
+    <text class="t" x="1027" y="494">Tablero (Streamlit)</text>
+    <text class="s" x="1027" y="512">lote por lote, con alertas</text>
+    <text class="s" x="1027" y="526">y reentrenamientos marcados</text>
+  </g>
+  <!-- flechas operación -->
+  <line x1="813" y1="288" x2="792" y2="288" stroke="#55534e" stroke-width="1.5" marker-end="url(#a)"/>
+  <text class="f" x="793" y="282">HTTP</text>
+  <path d="M695,344 L695,358 L1003,358 L1003,300 L1013,300" fill="none" stroke="#55534e" stroke-width="1.5" marker-end="url(#a)"/>
+  <text class="f" x="702" y="355">registra cada predicción con su versión, run_id y latencia</text>
+  <line x1="1095" y1="344" x2="1095" y2="368" stroke="#55534e" stroke-width="1.5" marker-end="url(#a)"/>
+  <line x1="1095" y1="450" x2="1095" y2="468" stroke="#55534e" stroke-width="1.5" marker-end="url(#a)"/>
+  <line x1="1015" y1="410" x2="992" y2="410" stroke="#e9820c" stroke-width="1.5" marker-end="url(#aa)"/>
+  <text class="f" x="993" y="404">alerta</text>
+  <path d="M600,410 L470,410 L470,332" fill="none" stroke="#e9820c" stroke-width="1.5" marker-end="url(#aa)"/>
+  <text class="f" x="478" y="404">mueve @champion</text>
+  <line x1="555" y1="262" x2="598" y2="262" stroke="#544ddb" stroke-width="1.5" marker-end="url(#ai)"/>
+  <text class="f" x="557" y="256" style="font-size:8.5px">@champion</text>
+  <line x1="902" y1="160" x2="902" y2="230" stroke="#55534e" stroke-width="1.5" marker-end="url(#a)" stroke-dasharray="4 3"/>
+  <text class="f" x="907" y="176">lotes</text>
+
+  <!-- fila 4: código -->
+  <g>
+    <rect x="25" y="398" width="250" height="138" rx="8" fill="#fff" stroke="#c9c7c0"/>
+    <text class="t" x="37" y="422">ci.yml (cada push y PR)</text>
+    <text class="s" x="37" y="442">instala dependencias</text>
+    <text class="s" x="37" y="456">construye la imagen de la API</text>
+    <text class="s" x="37" y="470">pytest: contrato, modelo,</text>
+    <text class="s" x="37" y="484">comportamiento, respaldo</text>
+    <text class="s" x="37" y="498">(modelo en tests/fixtures)</text>
+    <text class="s" x="37" y="518">prueba de humo de la imagen</text>
+  </g>
+  <g>
+    <rect x="305" y="430" width="250" height="106" rx="8" fill="#fff" stroke="#544ddb" stroke-width="1.5"/>
+    <text class="t" x="317" y="454">cd.yml (merge a main en verde)</text>
+    <text class="s" x="317" y="474">publica la imagen en GHCR</text>
+    <text class="s" x="317" y="488">tag = hash del commit</text>
+    <text class="s" x="317" y="508">el código se despliega solo;</text>
+    <text class="s" x="317" y="522">el modelo, nunca</text>
+  </g>
+  <line x1="275" y1="483" x2="303" y2="483" stroke="#55534e" stroke-width="1.5" marker-end="url(#a)"/>
+  <path d="M555,483 L578,483 L578,340 L598,340" fill="none" stroke="#544ddb" stroke-width="1.5" marker-end="url(#ai)"/>
+  <text class="f" x="490" y="476">imagen (API_TAG)</text>
+</svg>
+</body></html>

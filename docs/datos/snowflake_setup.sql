@@ -34,3 +34,8 @@ GRANT ROLE PSET2_ROLE TO USER PSET2_SVC;
 
 -- Comprobación: debe mostrar el identificador de cuenta que va en SNOWFLAKE_ACCOUNT (.env).
 SELECT CURRENT_ORGANIZATION_NAME() || '-' || CURRENT_ACCOUNT_NAME() AS snowflake_account;
+
+-- Proyecto final: tablas de operación del modelo (predicciones, monitoreo, alertas,
+-- reentrenamientos). Las crea src/mlops.py; aquí solo el esquema y el permiso.
+CREATE SCHEMA IF NOT EXISTS PSET2.MLOPS;
+GRANT ALL ON SCHEMA PSET2.MLOPS TO ROLE PSET2_ROLE;

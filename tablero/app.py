@@ -86,7 +86,7 @@ if len(costos):
                         legend=alt.Legend(orient="top", title=None)),
         tooltip=["lote_id", "estrategia", alt.Tooltip("valor:Q", title="costo del lote", format="$.2f"),
                  alt.Tooltip("acumulado:Q", format="$.2f")])
-    st.altair_chart(con_marcas(g, capa).properties(height=280), use_container_width=True)
+    st.altair_chart(con_marcas(g, capa).properties(height=280), width="stretch")
 else:
     st.info("Todavía no llegó el target de ningún lote.")
 
@@ -102,7 +102,7 @@ if len(w):
         tooltip=["lote_id", alt.Tooltip("valor:Q", format=".3f"), alt.Tooltip("umbral:Q", format=".3f"), "modelo_version"])
     umbral = base.mark_line(color=GRIS, strokeDash=[5, 4]).encode(y="umbral:Q")
     col_a.subheader("WAPE por lote (cuando llega el target)")
-    col_a.altair_chart(con_marcas(linea + umbral + puntos, capa).properties(height=260), use_container_width=True)
+    col_a.altair_chart(con_marcas(linea + umbral + puntos, capa).properties(height=260), width="stretch")
     col_a.caption("Gris punteado: umbral (media + 1,5 desv. del WAPE diario de la CV). Rojo: lote con alerta.")
 tasa = metrica(mon, "tasa_reforzar", "entradas")
 pred = metrica(mon, "prediccion_media", "entradas")
@@ -111,7 +111,7 @@ if len(tasa):
     g = alt.Chart(tasa).mark_bar(color=TEAL, cornerRadiusEnd=3).encode(
         x=alt.X("lote_id:O", title="Lote"), y=alt.Y("valor:Q", title="% de horas", axis=alt.Axis(format="%")),
         tooltip=["lote_id", alt.Tooltip("valor:Q", format=".0%"), "modelo_version"])
-    col_b.altair_chart(g.properties(height=260), use_container_width=True)
+    col_b.altair_chart(g.properties(height=260), width="stretch")
 if len(pred):
     st.subheader("Distribución de las predicciones (media, p10 y p90 por lote)")
     p = mon[(mon["etapa"] == "entradas") & mon["metrica"].isin(["prediccion_p10", "prediccion_media", "prediccion_p90"])]
@@ -120,7 +120,7 @@ if len(pred):
     banda = alt.Chart(piv).mark_area(color=INDIGO, opacity=0.15).encode(
         x=alt.X("lote_id:Q", title="Lote"), y=alt.Y("prediccion_p10:Q", title="Ventas previstas por hora"), y2="prediccion_p90:Q")
     media = alt.Chart(piv).mark_line(color=INDIGO, strokeWidth=2).encode(x="lote_id:Q", y="prediccion_media:Q")
-    st.altair_chart(con_marcas(banda + media, capa).properties(height=220), use_container_width=True)
+    st.altair_chart(con_marcas(banda + media, capa).properties(height=220), width="stretch")
 
 # ------------------------------------------------------------------- deriva
 st.header("Datos y deriva")
@@ -134,7 +134,7 @@ if len(psi):
         stroke=alt.condition("datum.alerta", alt.value(ROJO), alt.value(None)),
         tooltip=["lote_id", "feature", alt.Tooltip("valor:Q", title="PSI", format=".2f"),
                  alt.Tooltip("umbral:Q", format=".2f"), "alerta"])
-    st.altair_chart(g.properties(height=200), use_container_width=True)
+    st.altair_chart(g.properties(height=200), width="stretch")
     st.caption("Color: PSI dividido por su umbral calibrado (≥ 1 = alerta, borde rojo).")
 fuera = mon[(mon["etapa"] == "entradas") & mon["metrica"].isin(["fuera_rango", "categorias_no_vistas", "faltantes"])]
 if len(fuera):
@@ -142,7 +142,7 @@ if len(fuera):
                .query("alerta").pivot_table(index="lote_id", columns=["metrica", "feature"], values="valor"))
     if len(resumen):
         st.subheader("Calidad de las entradas (solo lotes con alerta)")
-        st.dataframe(resumen, use_container_width=True)
+        st.dataframe(resumen, width="stretch")
 
 # ------------------------------------------------------------------ sistema
 st.header("Sistema")
@@ -155,22 +155,22 @@ if len(lat):
         color=alt.Color("metrica:N", scale=alt.Scale(range=[TEAL, INDIGO]), legend=alt.Legend(orient="top", title=None)),
         tooltip=["lote_id", "metrica", alt.Tooltip("valor:Q", format=".1f")])
     s1.subheader("Latencia de /predecir")
-    s1.altair_chart(g.properties(height=220), use_container_width=True)
+    s1.altair_chart(g.properties(height=220), width="stretch")
 err = mon[(mon["etapa"] == "entradas") & mon["metrica"].isin(["tasa_4xx", "tasa_5xx", "volumen_solicitudes"])]
 err = err.sort_values("calculado_en").drop_duplicates(["lote_id", "metrica"], keep="last")
 if len(err):
     s2.subheader("Volumen y errores por lote")
-    s2.dataframe(err.pivot_table(index="lote_id", columns="metrica", values="valor"), use_container_width=True)
+    s2.dataframe(err.pivot_table(index="lote_id", columns="metrica", values="valor"), width="stretch")
 
 # -------------------------------------------------------- alertas y reentrenos
 st.header("Alertas")
 if len(alertas):
     st.dataframe(alertas[["lote_id", "severidad", "metrica", "feature", "valor", "umbral", "mensaje",
-                          "destinatario", "accion"]], use_container_width=True, hide_index=True)
+                          "destinatario", "accion"]], width="stretch", hide_index=True)
 st.header("Reentrenamientos")
 if len(reent):
     st.dataframe(reent[["lote_disparo", "motivo", "version_champion", "version_challenger", "lote_evaluacion",
                         "costo_champion", "costo_challenger", "sigma_costo", "wape_champion", "wape_challenger",
-                        "recomendacion", "decision", "motivo_decision"]], use_container_width=True, hide_index=True)
+                        "recomendacion", "decision", "motivo_decision"]], width="stretch", hide_index=True)
 else:
     st.info("Sin reentrenamientos todavía.")
