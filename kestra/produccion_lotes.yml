@@ -1,0 +1,108 @@
+id: produccion_lotes
+namespace: proyecto_final
+description: |
+  Simulación de producción (patrón batch). Lotes diarios del 26-10 al 25-11, posteriores al
+  entrenamiento. Por cada lote, en orden:
+    1. llegan los targets que ya existirían al momento de emitir el lote (los de la semana
+       anterior) y se unen con sus predicciones -> monitoreo de desempeño (puede disparar el
+       reentrenamiento, que espera la aprobación de una persona);
+    2. el lote se lee de Snowflake (MLOPS.LOTES) y pasa por la API, que registra cada
+       predicción en MLOPS.PREDICCIONES;
+    3. monitoreo de entradas del lote (sistema, modelo y datos).
+  Al final llegan los targets pendientes y se evalúan.
+
+inputs:
+  - id: reconstruir
+    type: BOOL
+    defaults: true
+    description: Reinicia el esquema MLOPS y vuelve a armar LOTES y TARGETS desde la OBT.
+
+pluginDefaults:
+  - type: io.kestra.plugin.scripts.shell.Commands
+    values:
+      containerImage: proyecto-final-ml:1.0
+      taskRunner:
+        type: io.kestra.plugin.scripts.runner.docker.Docker
+        pullPolicy: NEVER
+        networkMode: "{{ envs.docker_network }}"
+        volumes:
+          - "{{ envs.host_project_dir }}:/app"
+      env:
+        SNOWFLAKE_ACCOUNT: "{{ secret('SNOWFLAKE_ACCOUNT') }}"
+        SNOWFLAKE_USER: "{{ secret('SNOWFLAKE_USER') }}"
+        SNOWFLAKE_ROLE: "{{ secret('SNOWFLAKE_ROLE') }}"
+        SNOWFLAKE_WAREHOUSE: "{{ secret('SNOWFLAKE_WAREHOUSE') }}"
+        SNOWFLAKE_DATABASE: "{{ secret('SNOWFLAKE_DATABASE') }}"
+        SNOWFLAKE_PRIVATE_KEY: "{{ secret('SNOWFLAKE_PRIVATE_KEY') }}"
+        MLFLOW_TRACKING_URI: http://mlflow:5000
+        API_URL: http://api:8000
+      timeout: PT10M
+      retry:
+        type: constant
+        interval: PT20S
+        maxAttempts: 3
+
+tasks:
+  - id: construir_lotes
+    type: io.kestra.plugin.scripts.shell.Commands
+    runIf: "{{ inputs.reconstruir }}"
+    commands:
+      - python -m src.simulacion construir
+
+  - id: lotes
+    type: io.kestra.plugin.core.flow.ForEach
+    values: "{{ range(1, 31) }}"   # 31 lotes: un día de tienda cada uno, del 26-10 al 25-11
+    concurrencyLimit: 1          # en orden: el reloj de la simulación avanza lote a lote
+    tasks:
+      - id: llegada_targets
+        type: io.kestra.plugin.scripts.shell.Commands
+        commands:
+          - python -m src.simulacion etiquetar --lote {{ taskrun.value }}
+
+      - id: hay_targets
+        type: io.kestra.plugin.core.flow.If
+        condition: "{{ currentEachOutput(outputs.llegada_targets).vars.etiquetados | length > 0 }}"
+        then:
+          - id: monitoreo_desempeno
+            type: io.kestra.plugin.core.flow.Subflow
+            namespace: proyecto_final
+            flowId: monitoreo
+            wait: true
+            transmitFailed: true
+            inputs:
+              etapa: desempeno
+              lotes: "{{ currentEachOutput(outputs.llegada_targets).vars.etiquetados | join(',') }}"
+
+      - id: predecir
+        type: io.kestra.plugin.scripts.shell.Commands
+        commands:
+          - python -m src.simulacion predecir --lote {{ taskrun.value }}
+
+      - id: monitoreo_entradas
+        type: io.kestra.plugin.core.flow.Subflow
+        namespace: proyecto_final
+        flowId: monitoreo
+        wait: true
+        transmitFailed: true
+        inputs:
+          etapa: entradas
+          lotes: "{{ taskrun.value }}"
+
+  - id: llegada_final
+    type: io.kestra.plugin.scripts.shell.Commands
+    commands:
+      - python -m src.simulacion etiquetar --final
+
+  - id: hay_targets_finales
+    type: io.kestra.plugin.core.flow.If
+    condition: "{{ outputs.llegada_final.vars.etiquetados | length > 0 }}"
+    then:
+      - id: monitoreo_final
+        type: io.kestra.plugin.core.flow.Subflow
+        namespace: proyecto_final
+        flowId: monitoreo
+        wait: true
+        transmitFailed: true
+        inputs:
+          etapa: desempeno
+          lotes: "{{ outputs.llegada_final.vars.etiquetados | join(',') }}"

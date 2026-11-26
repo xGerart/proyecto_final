@@ -1,0 +1,13 @@
+# Servicio de predicción. scikit-learn, pandas y numpy en las mismas versiones con las
+# que se serializó el modelo (cloudpickle).
+fastapi==0.162.2
+uvicorn==0.54.0
+pydantic==2.14.3
+pandas==3.1.1
+numpy==2.5.5
+scikit-learn==1.9.1
+mlflow-skinny==3.18.0
+snowflake-connector-python[pandas]==5.2.0
+cryptography==50.0.2
+pyarrow==26.0.1
+python-dotenv==1.2.4

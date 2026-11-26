@@ -1,0 +1,36 @@
+flavors:
+  python_function:
+    env:
+      conda: conda.yaml
+      virtualenv: python_env.yaml
+    loader_module: mlflow.sklearn
+    model_path: model.pkl
+    predict_fn: predict
+    python_version: 3.12.14
+  sklearn:
+    code: null
+    pickled_model: model.pkl
+    serialization_format: cloudpickle
+    sklearn_version: 1.9.1
+    skops_trusted_types: null
+is_signature_from_type_hint: false
+mlflow_version: 3.18.0
+model_id: null
+model_size_bytes: 4351
+model_uuid: cf67ffd07d5748bca820332c40ac0507
+prompts: null
+signature:
+  inputs: '[{"type": "datetime", "name": "hour_date", "required": true}, {"type":
+    "long", "name": "hour_of_day", "required": true}, {"type": "long", "name": "iso_day_of_week",
+    "required": true}, {"type": "long", "name": "is_holiday", "required": true}, {"type":
+    "long", "name": "is_last_open_hour", "required": true}, {"type": "long", "name":
+    "ventana_pago", "required": true}, {"type": "double", "name": "sales_lag_7d",
+    "required": false}, {"type": "double", "name": "sales_lag_14d", "required": false},
+    {"type": "double", "name": "sales_lag_21d", "required": false}, {"type": "double",
+    "name": "sales_lag_28d", "required": false}, {"type": "double", "name": "sales_avg_4w_same_hour",
+    "required": false}, {"type": "double", "name": "ventas_dia_lag_7d", "required":
+    false}, {"type": "long", "name": "staff_present", "required": true}]'
+  outputs: '[{"type": "tensor", "tensor-spec": {"dtype": "float64", "shape": [-1]}}]'
+  params: null
+type_hint_from_example: false
+utc_time_created: '2026-11-26 16:00:55.918996'

@@ -1,0 +1,20 @@
+{
+  "descripcion": "Línea base de negocio del PSet 1 (promedio de la misma hora en las 4 semanas anteriores). Si falta ese promedio, usa la media de la hora en el entrenamiento del PSet 3.",
+  "umbral_carga": 8.0,
+  "media_hora": {
+    "8": 1.070175,
+    "9": 3.955224,
+    "10": 4.626866,
+    "11": 6.298507,
+    "12": 5.38806,
+    "13": 5.223881,
+    "14": 6.522388,
+    "15": 6.910448,
+    "16": 7.522388,
+    "17": 8.537313,
+    "18": 11.196429
+  },
+  "media_global": 6.106145,
+  "datos_hash": "d40705c0073c3866ebb648b09c4ae6b323c5274a211088301b1a884cdfdde8fc",
+  "filas_train": 716
+}

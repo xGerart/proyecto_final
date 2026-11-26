@@ -1,0 +1,76 @@
+id: monitoreo
+namespace: proyecto_final
+description: |
+  Se ejecuta después de cada lote (lo llama produccion_lotes).
+    etapa=entradas  -> métricas de sistema, de modelo (sin target) y de datos del lote recién
+                       predicho; PSI + KS/chi² contra el entrenamiento.
+    etapa=desempeno -> cuando llega el target: WAPE y costo de negocio frente a la regla y a
+                       no hacer nada; evalúa los disparadores de reentrenamiento.
+  Guarda todo en MLOPS.MONITOREO y las alertas en MLOPS.ALERTAS; las alertas también quedan
+  en el log de Kestra (WARN). Si se cumple un disparador, lanza reentrenamiento y espera.
+
+inputs:
+  - id: etapa
+    type: SELECT
+    values: [entradas, desempeno]
+  - id: lotes
+    type: STRING
+    description: Un lote (entradas) o una lista separada por comas (desempeno).
+
+tasks:
+  - id: calcular
+    type: io.kestra.plugin.scripts.shell.Commands
+    containerImage: proyecto-final-ml:1.0
+    taskRunner:
+      type: io.kestra.plugin.scripts.runner.docker.Docker
+      pullPolicy: NEVER
+      networkMode: "{{ envs.docker_network }}"
+      volumes:
+        - "{{ envs.host_project_dir }}:/app"
+    env:
+      SNOWFLAKE_ACCOUNT: "{{ secret('SNOWFLAKE_ACCOUNT') }}"
+      SNOWFLAKE_USER: "{{ secret('SNOWFLAKE_USER') }}"
+      SNOWFLAKE_ROLE: "{{ secret('SNOWFLAKE_ROLE') }}"
+      SNOWFLAKE_WAREHOUSE: "{{ secret('SNOWFLAKE_WAREHOUSE') }}"
+      SNOWFLAKE_DATABASE: "{{ secret('SNOWFLAKE_DATABASE') }}"
+      SNOWFLAKE_PRIVATE_KEY: "{{ secret('SNOWFLAKE_PRIVATE_KEY') }}"
+      MLFLOW_TRACKING_URI: http://mlflow:5000
+    commands:
+      - >-
+        python -m monitoreo.ejecutar {{ inputs.etapa }}
+        {{ inputs.etapa == 'entradas' ? '--lote' : '--lotes' }} {{ inputs.lotes }}
+    timeout: PT10M
+    retry:
+      type: constant
+      interval: PT20S
+      maxAttempts: 3
+
+  - id: hay_alertas
+    type: io.kestra.plugin.core.flow.If
+    condition: "{{ outputs.calcular.vars.alertas > 0 }}"
+    then:
+      - id: log_alertas
+        type: io.kestra.plugin.core.log.Log
+        level: WARN
+        message: |
+          {{ outputs.calcular.vars.alertas }} alerta(s), etapa {{ inputs.etapa }}, lote(s) {{ inputs.lotes }}:
+          {% for a in outputs.calcular.vars.alertas_resumen %}- {{ a }}
+          {% endfor %}
+
+  - id: disparo
+    type: io.kestra.plugin.core.flow.If
+    condition: "{{ outputs.calcular.vars.reentrenar ?? false }}"
+    then:
+      - id: log_disparo
+        type: io.kestra.plugin.core.log.Log
+        level: WARN
+        message: "Disparo de reentrenamiento: {{ outputs.calcular.vars.motivo }}"
+      - id: reentrenamiento
+        type: io.kestra.plugin.core.flow.Subflow
+        namespace: proyecto_final
+        flowId: reentrenamiento
+        wait: true
+        transmitFailed: true
+        inputs:
+          motivo: "{{ outputs.calcular.vars.motivo }}"
+          lote_disparo: "{{ outputs.calcular.vars.lote_disparo }}"

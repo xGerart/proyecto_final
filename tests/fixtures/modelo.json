@@ -1,0 +1,7 @@
+{
+  "nombre": "ventas-hora-matriz-modelo",
+  "version": 1,
+  "alias": "champion",
+  "run_id": "b2a93515cf00415f9b32336eadbe00bf",
+  "umbral_decision": 6.75
+}

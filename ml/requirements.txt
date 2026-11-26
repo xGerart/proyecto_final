@@ -1,0 +1,14 @@
+# Imagen de las tareas de Kestra (simulación, monitoreo, reentrenamiento) y del tablero.
+# Mismas versiones que el entorno de los notebooks: un modelo serializado con
+# cloudpickle solo se carga de forma fiable con las mismas versiones de scikit-learn.
+pandas==3.1.1
+numpy==2.5.5
+scipy==1.18.1
+scikit-learn==1.9.1
+mlflow-skinny==3.18.0
+snowflake-connector-python[pandas]==5.2.0
+cryptography==50.0.2
+pyarrow==26.0.1
+python-dotenv==1.2.4
+requests==2.34.2
+streamlit==1.67.0

@@ -1,0 +1,49 @@
+# Integración continua: en cada push y cada pull request se instalan las dependencias de
+# la API, se construye su imagen, se ejecutan las pruebas y se prueba la imagen construida.
+# CI no tiene acceso al servidor de MLflow ni a Snowflake: las pruebas usan la copia del
+# modelo de tests/fixtures (mlflow.sklearn.save_model) y registran en archivos locales.
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  pruebas:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: api/requirements.txt
+
+      - name: Instalar dependencias
+        run: pip install -r api/requirements.txt pytest==9.2.0 httpx==0.28.1
+
+      - name: Construir la imagen de la API
+        run: docker build -f api/Dockerfile -t proyecto_final-api:ci .
+
+      - name: Pruebas (contrato, modelo, comportamiento, respaldo)
+        run: pytest -v
+
+      - name: Prueba de humo de la imagen construida
+        run: |
+          docker run -d --name api -p 8000:8000 \
+            -v "$PWD/tests/fixtures:/fixtures:ro" \
+            -e MODELO_URI=/fixtures/modelo -e MODELO_METADATOS=/fixtures/modelo.json \
+            -e REGISTRO_PREDICCIONES=archivo -e REGISTRO_RUTA=/tmp/registro \
+            -e MODO_RESPALDO=false -e TOKEN_ADMIN=ci -e INTERVALO_RECARGA_S=0 \
+            proyecto_final-api:ci
+          for i in $(seq 1 30); do curl -sf localhost:8000/salud && break; sleep 2; done
+          curl -sf localhost:8000/salud | grep -q '"modelo_cargado":true'
+          curl -sf -X POST localhost:8000/predecir -H 'Content-Type: application/json' \
+            -d @tests/fixtures/ejemplo.json | tee /dev/stderr | grep -q '"version_modelo":1'
+          test "$(curl -s -o /dev/null -w '%{http_code}' -X POST localhost:8000/predecir \
+            -H 'Content-Type: application/json' -d '{"hour_of_day": 22}')" = "422"
+
+      - name: Logs de la API si algo falló
+        if: failure()
+        run: docker logs api || true

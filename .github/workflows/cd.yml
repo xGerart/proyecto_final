@@ -1,0 +1,46 @@
+# Despliegue continuo del CÓDIGO: cuando CI termina en verde sobre un push a main (es decir,
+# después de cada merge), se construye la imagen de la API y se publica en GitHub Container
+# Registry con el hash del commit como tag. docker-compose.yml usa esa imagen (API_TAG).
+#
+# El MODELO no se despliega aquí: la imagen no lo contiene. La API lo carga del Model Registry
+# por alias, y mover 'champion' exige la aprobación de una persona (kestra/reentrenamiento.yml).
+name: CD
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+
+jobs:
+  publicar-imagen:
+    if: github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      packages: write
+    env:
+      IMAGEN: ghcr.io/xgerart/proyecto_final-api
+      SHA: ${{ github.event.workflow_run.head_sha }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: api/Dockerfile
+          push: true
+          tags: |
+            ${{ env.IMAGEN }}:${{ env.SHA }}
+            ${{ env.IMAGEN }}:main
+
+      - name: Resumen
+        run: echo "Publicada ${IMAGEN}:${SHA}" >> "$GITHUB_STEP_SUMMARY"

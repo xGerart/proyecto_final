@@ -1,0 +1,15 @@
+{
+  "hour_date": "2026-10-28",
+  "hour_of_day": 16,
+  "iso_day_of_week": 3,
+  "is_holiday": 0,
+  "is_last_open_hour": 0,
+  "ventana_pago": 1,
+  "sales_lag_7d": 0.0,
+  "sales_lag_14d": 9.0,
+  "sales_lag_21d": 2.0,
+  "sales_lag_28d": 5.0,
+  "sales_avg_4w_same_hour": 4.0,
+  "ventas_dia_lag_7d": 42.0,
+  "staff_present": 2
+}

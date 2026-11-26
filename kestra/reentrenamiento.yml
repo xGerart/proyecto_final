@@ -1,0 +1,101 @@
+id: reentrenamiento
+namespace: proyecto_final
+description: |
+  Reentrena el champion (mismos hiperparámetros y preparación, sin tuning) con todo el
+  histórico etiquetado, lo registra como 'challenger', lo compara con el champion en el lote
+  etiquetado más reciente (que ninguno vio) y aplica la regla de promoción. Luego se DETIENE
+  hasta que una persona apruebe o rechace. Aprobar mueve el alias 'champion'; la API lo toma
+  sin reconstruir la imagen. El código se despliega solo (cd.yml); el modelo, nunca.
+
+inputs:
+  - id: motivo
+    type: STRING
+    description: Qué disparó el reentrenamiento (alerta de desempeño o calendario).
+  - id: lote_disparo
+    type: INT
+    description: Último lote etiquetado al momento del disparo.
+
+pluginDefaults:
+  - type: io.kestra.plugin.scripts.shell.Commands
+    values:
+      containerImage: proyecto-final-ml:1.0
+      taskRunner:
+        type: io.kestra.plugin.scripts.runner.docker.Docker
+        pullPolicy: NEVER
+        networkMode: "{{ envs.docker_network }}"
+        volumes:
+          - "{{ envs.host_project_dir }}:/app"
+      env:
+        SNOWFLAKE_ACCOUNT: "{{ secret('SNOWFLAKE_ACCOUNT') }}"
+        SNOWFLAKE_USER: "{{ secret('SNOWFLAKE_USER') }}"
+        SNOWFLAKE_ROLE: "{{ secret('SNOWFLAKE_ROLE') }}"
+        SNOWFLAKE_WAREHOUSE: "{{ secret('SNOWFLAKE_WAREHOUSE') }}"
+        SNOWFLAKE_DATABASE: "{{ secret('SNOWFLAKE_DATABASE') }}"
+        SNOWFLAKE_PRIVATE_KEY: "{{ secret('SNOWFLAKE_PRIVATE_KEY') }}"
+        MLFLOW_TRACKING_URI: http://mlflow:5000
+      timeout: PT15M
+
+tasks:
+  - id: entrenar
+    type: io.kestra.plugin.scripts.shell.Commands
+    commands:
+      - python -m src.reentrenar entrenar --motivo "{{ inputs.motivo }}" --lote-disparo {{ inputs.lote_disparo }}
+
+  - id: aprobacion
+    type: io.kestra.plugin.core.flow.Pause
+    description: |
+      Challenger v{{ outputs.entrenar.vars.version_challenger }} frente al champion
+      v{{ outputs.entrenar.vars.version_champion }}. {{ outputs.entrenar.vars.resumen }}
+      Reanudar con decision = aprobar | rechazar y el motivo.
+    onResume:
+      - id: decision
+        type: SELECT
+        values: [aprobar, rechazar]
+      - id: motivo
+        type: STRING
+      - id: excluir_lotes
+        type: STRING
+        required: false
+        description: Lotes que no deben usarse en futuros entrenamientos (p. ej. 18,19).
+
+  - id: decidir
+    type: io.kestra.plugin.scripts.shell.Commands
+    commands:
+      - >-
+        python -m src.reentrenar decidir --id {{ outputs.entrenar.vars.reentrenamiento_id }}
+        --decision {{ outputs.aprobacion.onResume.decision }}
+        --motivo "{{ outputs.aprobacion.onResume.motivo }}"
+        --excluir "{{ outputs.aprobacion.onResume.excluir_lotes ?? '' }}"
+
+  - id: aprobado
+    type: io.kestra.plugin.core.flow.If
+    condition: "{{ outputs.aprobacion.onResume.decision == 'aprobar' }}"
+    then:
+      - id: recargar_api
+        type: io.kestra.plugin.core.http.Request
+        description: La API también revisa el alias cada 30 s; esto solo lo aplica de inmediato.
+        uri: http://api:8000/modelo/recargar
+        method: POST
+        headers:
+          X-Token-Admin: "{{ secret('TOKEN_ADMIN') }}"
+      - id: log_aprobado
+        type: io.kestra.plugin.core.log.Log
+        message: "Nuevo champion: {{ outputs.decidir.vars.texto }} · API: {{ outputs.recargar_api.body }}"
+    else:
+      - id: log_rechazado
+        type: io.kestra.plugin.core.log.Log
+        level: WARN
+        message: "Challenger rechazado: {{ outputs.aprobacion.onResume.motivo }}. {{ outputs.decidir.vars.texto }}"
+
+triggers:
+  # Disparador por calendario en operación real: el primer día de cada mes a las 22:00.
+  # En la simulación el tiempo es simulado, así que el calendario lo evalúa monitoreo.yml
+  # contando lotes etiquetados (28 = 4 semanas); por eso el trigger está desactivado.
+  - id: calendario_mensual
+    type: io.kestra.plugin.core.trigger.Schedule
+    cron: "0 22 1 * *"
+    timezone: America/Guayaquil
+    disabled: true
+    inputs:
+      motivo: "calendario: reentrenamiento mensual"
+      lote_disparo: 0
