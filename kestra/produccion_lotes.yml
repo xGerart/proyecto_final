@@ -71,7 +71,7 @@ tasks:
             transmitFailed: true
             inputs:
               etapa: desempeno
-              lotes: "{{ currentEachOutput(outputs.llegada_targets).vars.etiquetados | join(',') }}"
+              lotes: pendientes   # los lotes recién etiquetados que aún no se evaluaron
 
       - id: predecir
         type: io.kestra.plugin.scripts.shell.Commands
@@ -105,4 +105,4 @@ tasks:
         transmitFailed: true
         inputs:
           etapa: desempeno
-          lotes: "{{ outputs.llegada_final.vars.etiquetados | join(',') }}"
+          lotes: pendientes

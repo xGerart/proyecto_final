@@ -6,6 +6,7 @@
       (faltantes, fuera de rango, PSI + KS/chi² contra el entrenamiento).
 
   python -m monitoreo.ejecutar desempeno --lotes 1,2,3
+      (o --lotes pendientes: los etiquetados que aún no se evaluaron)
       Cuando llega el target de esos lotes: WAPE, MAE y costo de negocio del modelo, de la
       regla de 4 semanas y de no hacer nada. Evalúa los disparadores de reentrenamiento.
 
@@ -217,7 +218,20 @@ def _disparadores(champion) -> tuple[bool, str, int | None]:
     return bool(motivos), "; ".join(motivos), (int(etiq["lote_id"].max()) if len(etiq) else None)
 
 
+def lotes_pendientes() -> list[int]:
+    """Lotes con target ya unido (EVALUACION) que todavía no tienen métricas de desempeño."""
+    df = mlops.leer("""
+        select distinct e.lote_id from EVALUACION e
+        where e.lote_id not in (select lote_id from MONITOREO where etapa = 'desempeno')
+        order by 1""")
+    return [int(x) for x in df["lote_id"]]
+
+
 def desempeno(lotes: list[int]) -> None:
+    if not lotes:
+        print("No hay lotes con target nuevo")
+        _salida_kestra(lotes=[], alertas=0, reentrenar=False, motivo="", lote_disparo=None, alertas_resumen=[])
+        return
     lista = ", ".join(str(l) for l in lotes)
     ev = mlops.leer(f"select * from EVALUACION where lote_id in ({lista})")
     m, nuevas = [], []
@@ -273,5 +287,7 @@ if __name__ == "__main__":
     a = ap.parse_args()
     if a.etapa == "entradas":
         entradas(a.lote)
+    elif a.lotes.strip() == "pendientes":
+        desempeno(lotes_pendientes())
     else:
         desempeno([int(x) for x in a.lotes.strip("[] ").split(",") if x.strip()])
