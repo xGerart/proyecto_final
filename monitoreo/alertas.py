@@ -43,7 +43,7 @@ CATALOGO = {
     "psi": DefinicionAlerta(
         "PSI de cada feature (lote vs. mismo día de la semana del entrenamiento)",
         "> percentil 99 de los días de entrenamiento (mín. 0,25)", "1 lote",
-        "Alta si KS/chi² p < 0,01; si no, Media", "Equipo de datos",
+        "Alta si KS/chi² p < 0,001; si no, Media", "Equipo de datos",
         "Revisar la fuente y el pipeline de la OBT; no reentrenar si el desempeño no cae"),
     "fuera_rango": DefinicionAlerta(
         "Valores fuera del rango de entrenamiento o categorías no vistas", "> 0 filas", "1 lote",

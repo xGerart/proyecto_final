@@ -88,11 +88,18 @@ def ejecutar(sql: str, params=None) -> None:
         con.cursor().execute(sql, params)
 
 
+def _columnas_fecha(tabla: str) -> set[str]:
+    """Columnas declaradas como `date` en el DDL (write_pandas no convierte datetime -> DATE)."""
+    return {c.split()[0] for c in DDL[tabla].replace("\n", " ").split(",") if c.split()[1:2] == ["date"]}
+
+
 def escribir(df: pd.DataFrame, tabla: str) -> int:
     """Agrega filas (append). Las columnas se pasan en mayúsculas, como las crea el DDL."""
     if df.empty:
         return 0
     out = df.copy()
+    for c in _columnas_fecha(tabla) & set(out.columns):
+        out[c] = pd.to_datetime(out[c]).dt.date
     out.columns = [c.upper() for c in out.columns]
     with conectar(ESQUEMA) as con:
         ok, _, filas, _ = write_pandas(con, out, tabla, quote_identifiers=False,

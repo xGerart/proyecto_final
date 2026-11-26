@@ -30,6 +30,9 @@ from src import mlops
 from src.produccion import referencia, version
 
 NUMERICAS_CONTROL = P.NUMERICAS
+# La prueba estadística confirma la alerta de PSI con p < 0,001, no 0,01: se hacen ~5 pruebas
+# por lote durante 31 lotes (~155); con 0,01 cabe esperar 1-2 confirmaciones por puro azar.
+P_CONFIRMA = 0.001
 
 
 def _salida_kestra(**valores) -> None:
@@ -147,9 +150,9 @@ def entradas(lote: int) -> None:
         alerta = bool(np.isfinite(r["psi"]) and r["psi"] > u)
         m.append(_fila(lote, "entradas", "deriva", "psi", r["psi"], r["feature"], u, alerta, v.numero))
         m.append(_fila(lote, "entradas", "deriva", f"p_valor_{r['prueba']}", r["p_valor"], r["feature"],
-                       0.01, bool(r["p_valor"] < 0.01), v.numero))
+                       P_CONFIRMA, bool(r["p_valor"] < P_CONFIRMA), v.numero))
         if alerta:
-            confirma = r["p_valor"] < 0.01
+            confirma = r["p_valor"] < P_CONFIRMA
             nuevas.append(A.nueva(
                 "psi", lote, r["psi"], u,
                 f"PSI {r['psi']:.2f} > {u:.2f}; {r['prueba'].upper()} p = {r['p_valor']:.2g} "
@@ -180,14 +183,20 @@ def _disparadores(champion) -> tuple[bool, str, int | None]:
     """¿Hay que reentrenar? Por desempeño (2 lotes seguidos con alerta de WAPE, posteriores
     al último disparo por desempeño) o por calendario (28 lotes etiquetados desde el fin del
     entrenamiento del champion o desde el último reentrenamiento por calendario)."""
-    mon = mlops.leer("select lote_id, alerta from MONITOREO where metrica = 'wape' order by lote_id")
+    mon = mlops.leer("select lote_id, alerta, calculado_en from MONITOREO where metrica = 'wape'")
     previos = mlops.leer("select lote_disparo, motivo, creado_en from REENTRENAMIENTOS")
     ultimo_desemp = previos.loc[previos["motivo"].str.contains("desempeño"), "lote_disparo"].max() if len(previos) else None
-    mon = mon.drop_duplicates("lote_id", keep="last").sort_values("lote_id")
-    recientes = mon.tail(A.LOTES_SEGUIDOS)
-    por_desemp = (len(recientes) == A.LOTES_SEGUIDOS and recientes["alerta"].all()
-                  and (pd.isna(ultimo_desemp) or recientes["lote_id"].min() > ultimo_desemp)
-                  and (recientes["lote_id"].diff().dropna() == 1).all())
+    mon = mon.sort_values("calculado_en").drop_duplicates("lote_id", keep="last").sort_values("lote_id")
+    if pd.notna(ultimo_desemp):
+        mon = mon[mon["lote_id"] > ultimo_desemp]
+    # Los targets llegan por semanas: se busca cualquier racha de lotes SEGUIDOS con alerta
+    # entre los etiquetados después del último disparo por desempeño, no solo los dos últimos.
+    racha, mejor = [], []
+    for lote, alerta in zip(mon["lote_id"], mon["alerta"]):
+        racha = racha + [lote] if alerta and racha and lote == racha[-1] + 1 else ([lote] if alerta else [])
+        if len(racha) >= A.LOTES_SEGUIDOS:
+            mejor = racha[-A.LOTES_SEGUIDOS:]
+    por_desemp = bool(mejor)
 
     estado = mlops.leer("select lote_id, fecha, target_recibido_en from LOTES_ESTADO")
     etiq = estado[estado["target_recibido_en"].notna()].copy()
@@ -202,7 +211,7 @@ def _disparadores(champion) -> tuple[bool, str, int | None]:
 
     motivos = []
     if por_desemp:
-        motivos.append(f"desempeño: WAPE sobre el umbral en los lotes {recientes['lote_id'].tolist()}")
+        motivos.append(f"desempeño: WAPE sobre el umbral en los lotes seguidos {[int(x) for x in mejor]}")
     if por_calendario:
         motivos.append(f"calendario: {n_cal} lotes etiquetados desde {desde.date()}")
     return bool(motivos), "; ".join(motivos), (int(etiq["lote_id"].max()) if len(etiq) else None)
